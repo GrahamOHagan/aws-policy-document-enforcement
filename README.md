@@ -1,6 +1,6 @@
 ## aws-policy-document-enforcement
 
-This module deploys a service that monitors and deletes any AWS policy documents that does not have a matching condition.
+This module deploys a service that monitors and deletes any AWS policy documents that has a statement not matching a required condition.
 
 The service is a lambda that is invoked by EventBridge rules, the pattern is determined by variables, for example:
 
@@ -34,7 +34,7 @@ which will produce:
 }
 ```
 
-The lambda will be invoked, and delete the policy if it does not match a certain condition, the conidtion is determined by variables, for example:
+The lambda will be invoked, and delete the policy if it does not match a certain condition determined by variables, for example:
 ```
 module "example" {
   ...
@@ -59,3 +59,5 @@ which will delete the rule if any statement of the policy does not have a condit
 | condition                  | Condition to enforce.                         | {operator = "StringEquals"<br>key = "aws:PrincipalOrgID"<br>value = "o-yyyyyyyyyy"} |
 | custom_lambda_name         | Custom name for the lambda                    | `policy-document-enforcement` |
 | tags                       | Tags for the lambda and dependant resources   | `NA`                          |
+
+AWS IAM policy conditions are detailed [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition.html).
