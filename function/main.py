@@ -84,14 +84,16 @@ def iam_main(event, eventName):
                 PolicyArn=arn,
                 VersionId=old_version
             )
+            logger.info(f"PolicyVersion {old_version} set to default")
             # Delete newly created version
             iam.delete_policy_version(
                 PolicyArn=arn,
                 VersionId=version_id
             )
+            logger.info(f"PolicyVersion {version_id} deleted")
         else:
             iam.delete_policy(PolicyArn=arn)
-        logger.info("Policy/PolicyVersion deleted")
+            logger.info("Policy deleted")
     except Exception as e:
         logger.error(f"Failed to delete Policy/PolicyVersion, {e}")
 

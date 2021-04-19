@@ -16,8 +16,8 @@ variable "pattern_events" {
   default     = ["PutBucketPolicy"]
 }
 
-variable "pattern_excluded_role_arns" {
-  description = "List of role arns for the Cloudtrail event pattern to exclude from the filter."
+variable "pattern_excluded_role_names" {
+  description = "List of role names for the Cloudtrail event pattern to exclude from the filter."
   type        = list(string)
   default     = []
 }

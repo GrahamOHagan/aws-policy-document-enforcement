@@ -30,7 +30,7 @@ locals {
       "userIdentity" : {
         "sessionContext" : {
           "sessionIssuer" : {
-            "arn" : [{ "anything-but" : var.pattern_excluded_role_arns }]
+            "userName" : [{ "anything-but" : var.pattern_excluded_role_names }]
           }
         }
       }
