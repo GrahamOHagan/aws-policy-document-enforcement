@@ -21,6 +21,42 @@ resource "aws_lambda_permission" "allow_event_trigger" {
   source_arn    = aws_cloudwatch_event_rule.this.arn
 }
 
+# If source is iam and region is not N Virginia, then need to create rule from us-east-1 to current region.
+resource "aws_cloudwatch_event_rule" "n_virginia" {
+  count = var.pattern_source == "aws.iam" && data.aws_region.current.name != "us-east-1" ? 1 : 0
+  name          = "policy-document-event"
+  description   = "Trigger policy enforcement lambda."
+  event_pattern = length(var.pattern_excluded_role_arns) > 0 ? local.event_pattern_excluded_roles : local.event_pattern
+
+  tags = var.tags
+
+  provider = aws.use1
+}
+
+resource "aws_cloudwatch_event_target" "n_virginia" {
+  count = var.pattern_source == "aws.iam" && data.aws_region.current.name != "us-east-1" ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.n_virginia[0].name
+  role_arn  = aws_iam_role.event[0].arn
+  target_id = "CrossAccount"
+  arn       = "arn:aws:events:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:event-bus/default"
+
+  provider = aws.use1
+}
+
+resource "aws_iam_role" "event" {
+  count = var.pattern_source == "aws.iam" && data.aws_region.current.name != "us-east-1" ? 1 : 0
+  name = "${local.lambda_name}-cross-account-role"
+
+  assume_role_policy = data.aws_iam_policy_document.event_trust.json
+
+  inline_policy {
+    name = "event-policy"
+    policy = data.aws_iam_policy_document.event_policy.json
+  }
+
+  tags = var.tags
+}
+
 # Lambda Function
 resource "aws_lambda_function" "this" {
   filename      = local.zip_location
@@ -53,7 +89,6 @@ resource "aws_iam_role" "this" {
 
   inline_policy {
     name = "lambda-policy"
-
     policy = data.aws_iam_policy_document.lambda_policy.json
   }
 

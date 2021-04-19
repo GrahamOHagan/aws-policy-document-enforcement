@@ -1,4 +1,5 @@
 import boto3
+import json
 import logging
 import os
 
@@ -12,16 +13,32 @@ C_VALUE = os.environ.get("VALUE")
 
 
 def lambda_handler(event=None, Contect=None):
-    print(event['detail'])
+    # print(event['detail'])
     source = event['detail']['eventSource']
     event_name = event['detail']['eventName']
     if event_name == "PutBucketPolicy" and source == "s3.amazonaws.com":
         s3_main(event['detail'])
+        return
+    if event_name in "CreatePolicyVersion" and source == "iam.amazonaws.com":
+        # Should work for CreatePolicy and CreatePolicyVersion
+        if "errorCode" in event['detail']:
+            code = event['detail']['errorCode']
+            message = event['detail']['errorMessage']
+            logger.warning(f"Policy not updated - {code} {message}")
+            return
+        iam_main(event['detail'], event_name)
+        return
+    # Handle inline policies
+    logger.warning(f"Unrecognised event: {event_name} - {source}")
 
 
 def s3_main(event):
-    bucket_policy = event['requestParameters']['bucketPolicy']
-    bucket_name = event['requestParameters']['bucketName']
+    try:
+        bucket_policy = event['requestParameters']['bucketPolicy']
+        bucket_name = event['requestParameters']['bucketName']
+    except Exception as e:
+        logger.error(f"Failed to parse event, {e}")
+        return
 
     delete = policy_validity(bucket_policy['Statement'])
 
@@ -36,6 +53,47 @@ def s3_main(event):
         logger.info("Bucket policy deleted")
     except Exception as e:
         logger.error(f"Failed to delete bucket policy, {e}")
+
+
+def iam_main(event, eventName):
+    try:
+        policy = json.loads(event['requestParameters']['policyDocument'])
+        if "policyArn" in event['requestParameters']:
+            arn = event['requestParameters']['policyArn']
+            version_id = event['responseElements']['policyVersion']['versionId']
+        else:
+            arn = event['responseElements']['policy']['arn']
+        policy_name = arn.split('/')[1]
+    except Exception as e:
+        logger.error(f"Failed to parse event, {e}")
+        return
+
+    delete = policy_validity(policy['Statement'])
+
+    if delete is False:
+        logger.info(f"Bucket policy for {policy_name} is valid - no action required")
+        return
+    logger.info(f"Bucket policy for {policy_name} is invalid - policy will be deleted")
+
+    iam = boto3.client('iam')
+    try:
+        if eventName == "CreatePolicyVersion":
+            old_version = f"v{int(version_id[1:]) - 1}"
+            # Set default version to previous version
+            iam.set_default_policy_version(
+                PolicyArn=arn,
+                VersionId=old_version
+            )
+            # Delete newly created version
+            iam.delete_policy_version(
+                PolicyArn=arn,
+                VersionId=version_id
+            )
+        else:
+            iam.delete_policy(PolicyArn=arn)
+        logger.info("Policy/PolicyVersion deleted")
+    except Exception as e:
+        logger.error(f"Failed to delete Policy/PolicyVersion, {e}")
 
 
 # Return True if policy does not satisfy condition, otherwise False
