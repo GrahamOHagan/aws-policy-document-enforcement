@@ -71,9 +71,9 @@ def iam_main(event, eventName):
     delete = policy_validity(policy['Statement'])
 
     if delete is False:
-        logger.info(f"Bucket policy for {policy_name} is valid - no action required")
+        logger.info(f"Policy {policy_name} is valid - no action required")
         return
-    logger.info(f"Bucket policy for {policy_name} is invalid - policy will be deleted")
+    logger.info(f"Policy {policy_name} is invalid - policy will be deleted")
 
     iam = boto3.client('iam')
     try:
