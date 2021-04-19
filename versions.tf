@@ -9,6 +9,6 @@ terraform {
   }
 }
 
-provider "aws" {
-  alias = "use1"
-}
+# provider "aws" {
+#   alias = "use1"
+# }
