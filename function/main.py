@@ -101,6 +101,8 @@ def iam_main(event, eventName):
 # Return True if policy does not satisfy condition, otherwise False
 def policy_validity(statements):
     for statement in statements:
+        if "Service" in statement['Principal']:
+            continue
         if "Condition" not in statement:
             return True
         if C_OPERATOR not in statement['Condition']:
