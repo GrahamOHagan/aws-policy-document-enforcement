@@ -101,8 +101,10 @@ def iam_main(event, eventName):
 # Return True if policy does not satisfy condition, otherwise False
 def policy_validity(statements):
     for statement in statements:
+        if statement['Effect'] == "Deny":
+            continue # Ignore DENY statements
         if "Service" in statement['Principal']:
-            continue
+            continue # Ignore statements whhere principal is AWS Service
         if "Condition" not in statement:
             return True
         if C_OPERATOR not in statement['Condition']:
