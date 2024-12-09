@@ -68,7 +68,7 @@ def iam_main(event, eventName):
         logger.error(f"Failed to parse event, {e}")
         return
 
-    delete = policy_validity(policy['Statement'])
+    delete = policy_validity(policy.get("Statement", []))
 
     if delete is False:
         logger.info(f"Policy {policy_name} is valid - no action required")
@@ -104,7 +104,10 @@ def policy_validity(statements):
         if statement['Effect'] == "Deny":
             continue # Ignore DENY statements
         if "Service" in statement['Principal']:
-            continue # Ignore statements whhere principal is AWS Service
+            continue # Ignore statements where principal is AWS Service
+        if "AWS" in statement['Principal']:
+            if statement['Principal']['AWS'].startswith("arn:aws:iam::cloudfront:user"):
+                continue # Ignore statements where principal is a Cloudfront OAI (Legacy)
         if "Condition" not in statement:
             return True
         if C_OPERATOR not in statement['Condition']:
